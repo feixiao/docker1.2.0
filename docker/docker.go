@@ -24,32 +24,48 @@ const (
 )
 
 func main() {
+	// reexec.Init() 函数的定义位于 ./docker/reexec/reexec.go，可以发现由于在docker运行之前没有任何Initializer注册，故该代码段执行的返回值为假。
+	// reexec存在的作用是:协调 exec driver 与容器创建时 docker init这两者的关系。
 	if reexec.Init() {
 		return
 	}
+
+	// 解析参数： flag "github.com/docker/flag.go"
 	flag.Parse()
 	// FIXME: validate daemon flags here
 
+	// flVersion为真，输出docker版本信息
 	if *flVersion {
 		showVersion()
 		return
 	}
+	// flDebug为真，设置DEBUG环境变量为1
 	if *flDebug {
 		os.Setenv("DEBUG", "1")
 	}
 
+	// ftHosts的作用是为 Docker Client 提供所要连接的host对象，也就是为 Docker Server 提供所要监昕的对象。
 	if len(flHosts) == 0 {
+		// 如果长度是0,说明用户没有传入地址
+
+		// Docker 通过 os 包获取名为 DOCKER_HOST 环环境变量
 		defaultHost := os.Getenv("DOCKER_HOST")
+
 		if defaultHost == "" || *flDaemon {
 			// If we do not have a host, default to unix socket
+
+			// 若 defaultHost 为空或者 flDaemon 为真，说明目前还没有一个定义的 host对象，则将其默认设置为 unix socket ，值为 api.DEFAULTUNIXSOCKET ，
+			// 该常量位于docker/api/common.go ，值为 "/var/run/docker.sock" ，故 defaultHost 为 "unix:///var/runldocker.sock" 。
 			defaultHost = fmt.Sprintf("unix://%s", api.DEFAULTUNIXSOCKET)
 		}
+		// 验证该 defaultHost 的合法性之后，将 defaultHost 的值追加至 flHost 的末尾， 继续往下执行。
 		if _, err := api.ValidateHost(defaultHost); err != nil {
 			log.Fatal(err)
 		}
 		flHosts = append(flHosts, defaultHost)
 	}
 
+	// 若 flDaemon 参数为真，则说明用户的需求是启动 Docker Daemon。
 	if *flDaemon {
 		mainDaemon()
 		return
