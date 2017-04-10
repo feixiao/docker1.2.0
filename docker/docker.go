@@ -70,19 +70,24 @@ func main() {
 		mainDaemon()
 		return
 	}
-
+	// 若 flHosts 的长度大于 1 ，则说明需要新创建的 Docker Client 访问不止 1 个 Docker Daemon 地址，显然逻辑上行不通，故抛出错误日志，
+	// 提醒用户只能指定一个 Docker Daemon 地址。
 	if len(flHosts) > 1 {
 		log.Fatal("Please specify only one -H")
 	}
+	// 获取通过：//分割的两部分
 	protoAddrParts := strings.SplitN(flHosts[0], "://", 2)
 
+	// Docker 在这里创建了两个变量:一个为类型是*c1ient.DockerCli 的对象cli ，另一个为类型是 tls.Config 的对象 tlsConfig 。
 	var (
 		cli       *client.DockerCli
-		tlsConfig tls.Config
+		tlsConfig tls.Config  // TLS协议
 	)
+
 	tlsConfig.InsecureSkipVerify = true
 
 	// If we should verify the server, we need to load a trusted ca
+	// tlsConfig 对象需要加载一个受信的 ca 文件
 	if *flTlsVerify {
 		*flTls = true
 		certPool := x509.NewCertPool()
@@ -109,12 +114,15 @@ func main() {
 		}
 	}
 
+	// 创建Docker Client实例。
 	if *flTls || *flTlsVerify {
+		// 实现在./docker/api/client/cli.go
 		cli = client.NewDockerCli(os.Stdin, os.Stdout, os.Stderr, protoAddrParts[0], protoAddrParts[1], &tlsConfig)
 	} else {
 		cli = client.NewDockerCli(os.Stdin, os.Stdout, os.Stderr, protoAddrParts[0], protoAddrParts[1], nil)
 	}
 
+	// 执行相应的命令
 	if err := cli.Cmd(flag.Args()...); err != nil {
 		if sterr, ok := err.(*utils.StatusError); ok {
 			if sterr.Status != "" {
