@@ -17,8 +17,8 @@ import (
 
 // DockerCli结构
 type DockerCli struct {
-	proto      string		// 协议类型 tcp、unix、fd
-	addr       string
+	proto      string		// (Client和Server直接的传输类型)协议类型 tcp、unix、fd
+	addr       string		// Docker需要访问host的目标
 	configFile *registry.ConfigFile // for what ?
 	in         io.ReadCloser	// 读和关闭接口
 	out        io.Writer            // 写接口
@@ -54,13 +54,17 @@ func (cli *DockerCli) getMethod(name string) (func(...string) error, bool) {
 // 执行命令
 func (cli *DockerCli) Cmd(args ...string) error {
 	if len(args) > 0 {
+		// 有请求信息
 		method, exists := cli.getMethod(args[0])
 		if !exists {
+			// 请求信息的方法不存在则输出help信息
 			fmt.Println("Error: Command not found:", args[0])
 			return cli.CmdHelp(args[1:]...)
 		}
+		// 方法存在就调用相应的方法并返回结果
 		return method(args[1:]...)
 	}
+	// 没有请求信息则输出help信息
 	return cli.CmdHelp(args...)
 }
 
