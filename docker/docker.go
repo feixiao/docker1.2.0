@@ -88,6 +88,7 @@ func main() {
 
 	// If we should verify the server, we need to load a trusted ca
 	// tlsConfig 对象需要加载一个受信的 ca 文件
+	// 如果flTlsVerify为true，Docker Client连接Docker Server需要验证安全性
 	if *flTlsVerify {
 		*flTls = true
 		certPool := x509.NewCertPool()
@@ -101,6 +102,7 @@ func main() {
 	}
 
 	// If tls is enabled, try to load and send client certificates
+	// 如果flTls和flTlsVerify有一个为真，那么需要加载证书发送给客户端。
 	if *flTls || *flTlsVerify {
 		_, errCert := os.Stat(*flCert)
 		_, errKey := os.Stat(*flKey)
@@ -117,6 +119,7 @@ func main() {
 	// 创建Docker Client实例。
 	if *flTls || *flTlsVerify {
 		// 实现在./docker/api/client/cli.go
+		// 如果flTls或者flTlsVerify为真，那么需要使用TLS保证传输的安全性。
 		cli = client.NewDockerCli(os.Stdin, os.Stdout, os.Stderr, protoAddrParts[0], protoAddrParts[1], &tlsConfig)
 	} else {
 		cli = client.NewDockerCli(os.Stdin, os.Stdout, os.Stderr, protoAddrParts[0], protoAddrParts[1], nil)
